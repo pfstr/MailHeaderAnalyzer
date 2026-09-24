@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
 
+# The shell key does not accept the matrix context, so each shell gets its own
+# pair of steps, selected with an if condition.
 jobs:
   test:
     name: ${{ matrix.os }} / ${{ matrix.shell }}
@@ -24,16 +26,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Pester and PSScriptAnalyzer
-        shell: ${{ matrix.shell }}
-        run: |
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-          Install-Module -Name Pester -MinimumVersion 5.5 -Force -SkipPublisherCheck -Scope CurrentUser
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          $PSVersionTable.PSVersion.ToString()
+      - name: Install Pester and PSScriptAnalyzer (pwsh)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: ./.github/install-dev-tools.ps1
 
-      - name: Lint, manifest, tests
-        shell: ${{ matrix.shell }}
+      - name: Install Pester and PSScriptAnalyzer (Windows PowerShell)
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: ./.github/install-dev-tools.ps1
+
+      - name: Lint, manifest, tests (pwsh)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: ./build.ps1 -CI
+
+      - name: Lint, manifest, tests (Windows PowerShell)
+        if: matrix.shell == 'powershell'
+        shell: powershell
         run: ./build.ps1 -CI
 
       - name: Upload test results

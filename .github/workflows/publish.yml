@@ -21,10 +21,7 @@ jobs:
 
       - name: Install Pester and PSScriptAnalyzer
         shell: pwsh
-        run: |
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-          Install-Module -Name Pester -MinimumVersion 5.5 -Force -SkipPublisherCheck -Scope CurrentUser
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        run: ./.github/install-dev-tools.ps1
 
       - name: Lint, manifest, tests
         shell: pwsh
