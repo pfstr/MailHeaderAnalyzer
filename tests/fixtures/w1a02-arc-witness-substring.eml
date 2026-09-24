@@ -1,0 +1,11 @@
+Received: from relay.example.test (relay.example.test [203.0.113.9]) by mx.example.invalid (Postfix) with ESMTP id AAAA3; Mon, 3 Aug 2026 09:00:00 +0000
+DKIM-Signature: v=1; a=rsa-sha256; d=bank.example; s=k1; b=AAAA
+Authentication-Results: mx.example.invalid; dkim=fail header.d=bank.example
+ARC-Seal: i=1; a=rsa-sha256; d=relay1.example.test; cv=none; b=AAAA
+ARC-Authentication-Results: i=1; mx.relay1.example.test; dkim=pass header.d=evil-bank.example
+ARC-Seal: i=2; a=rsa-sha256; d=relay2.example.test; cv=pass; b=AAAA
+ARC-Authentication-Results: i=2; mx.relay2.example.test; dkim=pass header.d=bank.example.evil.test
+ARC-Seal: i=3; a=rsa-sha256; d=relay3.example.test; cv=pass; b=AAAA
+ARC-Authentication-Results: i=3; mx.relay3.example.test; dkim=pass header.d=xxbank.exampleyy
+From: "Bank" <security@bank.example>
+Subject: W1A-02 Zeugenabgleich

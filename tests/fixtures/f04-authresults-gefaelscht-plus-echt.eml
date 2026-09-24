@@ -1,0 +1,5 @@
+Authentication-Results: mx.bank.example; spf=pass smtp.mailfrom=bank.example; dkim=pass header.d=bank.example; dmarc=pass header.from=bank.example
+Received: from evil-relay.invalid (evil-relay.invalid [203.0.113.9]) by mx.empfang.invalid (Postfix) with ESMTP id REAL1; Tue, 04 Aug 2026 11:00:00 +0200
+Authentication-Results: mx.empfang.invalid; spf=fail smtp.mailfrom=evil.invalid; dkim=none; dmarc=fail header.from=bank.example
+From: "Bank Sicherheit" <security@bank.example>
+Subject: F-04 gefaelscht plus echt

@@ -1,0 +1,65 @@
+Received: from ZR0P278MB0570.CHEP278.PROD.OUTLOOK.COM (2603:10a6:910:41::14)
+ by ZR0P278MB1866.CHEP278.PROD.OUTLOOK.COM with HTTPS; Mon, 3 Aug 2026
+ 09:15:12 +0000
+Received: from AM0EUR02FT056.eop-EUR02.prod.protection.outlook.com
+ (2a01:111:e400:7e39::4d) by ZR0P278MB0570.CHEP278.PROD.OUTLOOK.COM
+ (2603:10a6:910:41::14) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9009.15; Mon, 3 Aug
+ 2026 09:15:10 +0000
+Received: from mail.example.org (mail.example.org [203.0.113.25]) by
+ mx.eur02.prod.protection.outlook.com (10.13.4.211) with Microsoft SMTP
+ Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.20.9009.12
+ via Frontend Transport; Mon, 3 Aug 2026 09:15:09 +0000
+Received: from lists.example.org (localhost [127.0.0.1]) by mail.example.org
+ (Postfix) with ESMTP id 4Wq2Xk1Zfjz2xQm; Mon, 3 Aug 2026 09:14:56 +0000
+Received: from client.example.net (client.example.net [198.51.100.34]) by
+ mail.example.org (Postfix) with ESMTPSA id 4Wq2Wx5RbTz2xPl for
+ <empfang@example.com>; Mon, 3 Aug 2026 09:14:28 +0000
+Authentication-Results: spf=pass (sender IP is 203.0.113.25)
+ smtp.mailfrom=example.org; dkim=pass (signature was verified)
+ header.d=example.org; dmarc=pass action=none header.from=example.org;
+ compauth=pass reason=100
+Received-SPF: Pass (protection.outlook.com: domain of example.org designates
+ 203.0.113.25 as permitted sender) receiver=protection.outlook.com;
+ client-ip=203.0.113.25; helo=mail.example.org;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.org;
+ s=mail2026; t=1785741268; h=from:to:subject:date:message-id:mime-version;
+ bh=Yk3sVq2mB8dQxGfT1wRz7cN4pL6aH9jE0uKiOgXeS5A=;
+ b=QW5hbHlzZUJlaXNwaWVsU2lnbmF0dXJEYXRlbkJhc2U2NEJlaXNwaWVsRGF0ZW5CYXNlNjQ=
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=ZXhhbXBsZUFSQ1NlYWxCZWlzcGllbERhdGVuQmFzZTY0QmVpc3BpZWw=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001; h=From:Date:Subject:Message-ID:Content-Type:MIME-Version;
+ bh=Uq8wXz3kD1fLpR6tYv0mS9gN2cB7aJ4eH5iK8oQxTnE=;
+ b=QVJDTWVzc2FnZVNpZ25hdHVyQmVpc3BpZWxEYXRlbg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=example.org; dmarc=pass action=none header.from=example.org;
+ dkim=pass header.d=example.org; arc=none
+From: "Beispiel Newsletter" <news@example.org>
+To: empfang@example.com
+Subject: =?UTF-8?Q?Service-Report_f=C3=BCr_M=C3=A4rz?=
+Date: Mon, 3 Aug 2026 09:14:27 +0000
+Message-ID: <20260803091427.4Wq2Wx5RbTz@mail.example.org>
+Return-Path: bounce@example.org
+Reply-To: support@example.org
+List-Unsubscribe: <https://example.org/unsubscribe/abc123>,
+ <mailto:unsubscribe@example.org?subject=abc123>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+X-Mailer: ExampleSender 4.2
+X-Forefront-Antispam-Report: CIP:203.0.113.25;CTRY:CH;LANG:de;SCL:1;SRV:;
+ IPV:NLI;SFV:NSPM;H:mail.example.org;PTR:mail.example.org;CAT:NONE;DIR:INB;
+X-Microsoft-Antispam: BCL:0;
+X-MS-Exchange-Organization-MessageDirectionality: Incoming
+X-MS-Exchange-Organization-AuthSource: AM0EUR02FT056.eop-EUR02.prod.protection.outlook.com
+X-MS-Exchange-Organization-AuthAs: Anonymous
+X-MS-Exchange-Organization-AuthMechanism: 04
+X-OriginatorOrg: example.org
+X-MS-Exchange-CrossTenant-Id: 11111111-2222-3333-4444-555555555555
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-AuthSource: AM0EUR02FT056.eop-EUR02.prod.protection.outlook.com
+X-MS-Exchange-CrossTenant-FromEntityHeader: Internet
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: ZR0P278MB0570
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Body text that must be ignored.

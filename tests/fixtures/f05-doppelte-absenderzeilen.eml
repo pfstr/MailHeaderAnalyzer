@@ -1,0 +1,10 @@
+Received: from evil-relay.invalid (evil-relay.invalid [203.0.113.9]) by mx.empfang.invalid (Postfix) with ESMTP id DUP1; Tue, 04 Aug 2026 11:00:00 +0200
+Authentication-Results: mx.empfang.invalid; spf=fail smtp.mailfrom=evil.invalid; dkim=none; dmarc=fail header.from=bank.example
+From: "security@bank.example" <angreifer@evil.invalid>
+From: <zweiter-absender@evil2.invalid>
+Reply-To: <antwort1@evil.invalid>
+Reply-To: <antwort2@evil2.invalid>
+Return-Path: <bounce1@evil.invalid>
+Return-Path: <bounce2@evil2.invalid>
+Subject: F-05 doppelte Kopfzeilen
+Date: Tue, 4 Aug 2026 11:00:00 +0200

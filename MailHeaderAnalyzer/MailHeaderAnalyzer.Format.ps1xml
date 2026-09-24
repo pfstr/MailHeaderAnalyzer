@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>MailHeaderAnalyzer.Analysis</Name>
+      <ViewSelectedBy>
+        <TypeName>MailHeaderAnalyzer.Analysis</TypeName>
+      </ViewSelectedBy>
+      <ListControl>
+        <ListEntries>
+          <ListEntry>
+            <ListItems>
+              <ListItem>
+                <Label>Subject</Label>
+                <ScriptBlock>if ($_.Subject) { $_.Subject -replace '[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]', '?' } else { '(no subject)' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>From</Label>
+                <ScriptBlock>if ($_.From) { $_.From.Display } else { '-' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>Date</Label>
+                <ScriptBlock>if ($_.Date) { $_.Date.ToString('u') } else { '-' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>SPF</Label>
+                <ScriptBlock>if ($_.Spf) { $_.Spf } else { 'missing' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>DKIM</Label>
+                <ScriptBlock>if ($_.Dkim) { $_.Dkim } else { 'missing' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>DMARC</Label>
+                <ScriptBlock>if ($_.Dmarc) { $_.Dmarc } else { 'missing' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>ARC</Label>
+                <ScriptBlock>if ($_.Arc) { $_.Arc } else { '-' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>CompAuth</Label>
+                <ScriptBlock>if ($_.CompAuth) { if ($_.CompAuthReason) { '{0} (reason {1})' -f $_.CompAuth, $_.CompAuthReason } else { $_.CompAuth } } else { '-' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>AuthTrust</Label>
+                <ScriptBlock>switch ($_.AuthTrust) { 'Matched' { 'Matched (results come from the delivery chain)' } 'Unmatched' { 'Unmatched (results are an unverified claim)' } 'Absent' { 'Absent (no authserv-id, Microsoft 365 style)' } default { 'None' } }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>Hops</Label>
+                <ScriptBlock>if ($_.TotalDuration) { '{0} (total {1:c})' -f $_.HopCount, $_.TotalDuration } else { $_.HopCount }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>DeliveredBy</Label>
+                <ScriptBlock>if ($_.DeliveredBy) { $_.DeliveredBy } else { '-' }</ScriptBlock>
+              </ListItem>
+              <ListItem>
+                <Label>Findings</Label>
+                <ScriptBlock>if ($_.Findings.Count -eq 0) { 'none' } else { ($_.Findings | ForEach-Object { '[{0}] {1}' -f $_.Severity, $_.Code }) -join ', ' }</ScriptBlock>
+              </ListItem>
+            </ListItems>
+          </ListEntry>
+        </ListEntries>
+      </ListControl>
+    </View>
+    <View>
+      <Name>MailHeaderAnalyzer.Hop</Name>
+      <ViewSelectedBy>
+        <TypeName>MailHeaderAnalyzer.Hop</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>#</Label><Width>3</Width></TableColumnHeader>
+          <TableColumnHeader><Label>From</Label><Width>34</Width></TableColumnHeader>
+          <TableColumnHeader><Label>IP</Label><Width>17</Width></TableColumnHeader>
+          <TableColumnHeader><Label>By</Label><Width>34</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Protocol</Label><Width>10</Width></TableColumnHeader>
+          <TableColumnHeader><Label>TLS</Label><Width>8</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Time (UTC)</Label><Width>20</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Delay</Label><Width>10</Width></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem><PropertyName>Index</PropertyName></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.ReverseDns) { $_.ReverseDns } elseif ($_.FromHost) { $_.FromHost } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.IPAddress) { $_.IPAddress } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.ByHost) { $_.ByHost } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.Protocol) { $_.Protocol } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.TlsVersion) { $_.TlsVersion } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.Date) { $_.Date.ToString('yyyy-MM-dd HH:mm:ss') } else { '-' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($null -ne $_.Delay) { $s = [int64]$_.Delay.TotalSeconds; if ($s -lt 90) { '{0} s' -f $s } elseif ($s -lt 3600) { '{0} min' -f [math]::Floor($s / 60) } else { '{0} h' -f [math]::Round($s / 3600, 1) } } else { '-' }</ScriptBlock></TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+    <View>
+      <Name>MailHeaderAnalyzer.Finding</Name>
+      <ViewSelectedBy>
+        <TypeName>MailHeaderAnalyzer.Finding</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Severity</Label><Width>8</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Code</Label><Width>26</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Message</Label></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <Wrap/>
+            <TableColumnItems>
+              <TableColumnItem><PropertyName>Severity</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Code</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Message</PropertyName></TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+    <View>
+      <Name>MailHeaderAnalyzer.DkimSignature</Name>
+      <ViewSelectedBy>
+        <TypeName>MailHeaderAnalyzer.DkimSignature</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Domain</Label><Width>28</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Selector</Label><Width>16</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Algorithm</Label><Width>12</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Receiver</Label><Width>9</Width></TableColumnHeader>
+          <TableColumnHeader><Label>Signed headers</Label></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem><PropertyName>Domain</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Selector</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Algorithm</PropertyName></TableColumnItem>
+              <TableColumnItem><ScriptBlock>if ($_.ReceiverResult) { $_.ReceiverResult } else { 'unknown' }</ScriptBlock></TableColumnItem>
+              <TableColumnItem><ScriptBlock>$_.SignedHeaders -join ':'</ScriptBlock></TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>

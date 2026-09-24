@@ -1,0 +1,7 @@
+Received: from mail.example.org (mail.example.org [203.0.113.25]) by mx.empfang.invalid (Postfix) with ESMTPS id BIDI1; Tue, 04 Aug 2026 11:00:00 +0200
+Authentication-Results: mx.empfang.invalid; spf=pass smtp.mailfrom=example.org; dkim=none; dmarc=fail header.from=example.org
+Subject: Rechnung ‮fdp.exe F-06
+Reply-To: "Support ‮gnuhcaR‬" <reply@example.invalid>
+From: <buchhaltung@example.org>
+To: empfang@example.com
+Date: Tue, 4 Aug 2026 11:00:00 +0200

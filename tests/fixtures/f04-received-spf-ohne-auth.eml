@@ -1,0 +1,4 @@
+Received: from evil-relay.invalid (evil-relay.invalid [203.0.113.9]) by mx.empfang.invalid (Postfix) with ESMTP id NOAUTH1; Tue, 04 Aug 2026 11:00:00 +0200
+Received-SPF: pass (bank.example: domain of bank.example designates 203.0.113.9 as permitted sender) receiver=mx.bank.example;
+From: "Bank Sicherheit" <security@bank.example>
+Subject: F-04 nur Received-SPF

@@ -1,0 +1,5 @@
+﻿Received: from mail.example.org (mail.example.org [203.0.113.25]) by mx.empfang.invalid (Postfix) with ESMTPS id BOM1; Tue, 04 Aug 2026 11:00:00 +0200
+Received: from client.example.net (client.example.net [198.51.100.34]) by mail.example.org (Postfix) with ESMTPSA id BOM2; Tue, 04 Aug 2026 10:59:30 +0200
+From: <absender@example.org>
+To: empfang@example.com
+Subject: W1A-10 Byte Order Mark

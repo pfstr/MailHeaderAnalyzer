@@ -1,0 +1,32 @@
+Received: from AM0EUR02FT056.eop-EUR02.prod.protection.outlook.com
+ (2001:db8:e400:7e39::4d) by ZR0P278MB0570.CHEP278.PROD.OUTLOOK.COM
+ (2001:db8:910:41::14) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9009.15; Mon, 3 Aug
+ 2026 09:15:10 +0000
+Received: from mail.example.org (mail.example.org [203.0.113.25]) by
+ mx.eur02.prod.protection.outlook.com (10.13.4.211) with Microsoft SMTP
+ Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.20.9009.12
+ via Frontend Transport; Mon, 3 Aug 2026 09:15:09 +0000
+Received: from client.example.net (client.example.net [198.51.100.34]) by
+ mail.example.org (Postfix) with ESMTPSA id 4Wq2Wx5RbTz2xPl for
+ <empfang@example.com>; Mon, 3 Aug 2026 09:14:28 +0000
+Authentication-Results: spf=pass (sender IP is 203.0.113.25)
+ smtp.mailfrom=example.org; dkim=pass (signature was verified)
+ header.d=example.org; dmarc=pass action=none header.from=example.org;
+ compauth=pass reason=100
+Received-SPF: Pass (protection.outlook.com: domain of example.org designates
+ 203.0.113.25 as permitted sender) receiver=protection.outlook.com;
+ client-ip=203.0.113.25; helo=mail.example.org;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.org;
+ s=mail2026; t=1785741268; h=from:to:subject:date:message-id:mime-version;
+ bh=Yk3sVq2mB8dQxGfT1wRz7cN4pL6aH9jE0uKiOgXeS5A=;
+ b=QW5hbHlzZUJlaXNwaWVsU2lnbmF0dXJEYXRlbkJhc2U2NEJlaXNwaWVsRGF0ZW5CYXNlNjQ=
+From: "Beispiel Newsletter" <news@example.org>
+To: empfang@example.com
+Subject: =?UTF-8?Q?Service-Report_f=C3=BCr_M=C3=A4rz?=
+Date: Mon, 3 Aug 2026 09:14:27 +0000
+Message-ID: <20260803091427.4Wq2Wx5RbTz@mail.example.org>
+Return-Path: bounce@example.org
+Reply-To: support@example.org
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
