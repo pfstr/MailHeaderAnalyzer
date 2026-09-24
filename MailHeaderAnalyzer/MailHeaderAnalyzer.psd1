@@ -1,6 +1,6 @@
 @{
     RootModule           = 'MailHeaderAnalyzer.psm1'
-    ModuleVersion        = '0.1.0'
+    ModuleVersion        = '0.1.1'
     CompatiblePSEditions = @('Desktop', 'Core')
     GUID                 = 'f6d83373-3d5d-43c8-b287-3dbd25e93cfc'
     Author               = 'Rafael Pfister'
@@ -17,7 +17,8 @@
         PSData = @{
             Tags         = @('Email', 'Mail', 'Header', 'Exchange', 'ExchangeOnline', 'Microsoft365', 'Office365', 'SMTP', 'SPF', 'DKIM', 'DMARC', 'ARC', 'Phishing', 'Security', 'Forensics', 'Troubleshooting', 'PSEdition_Desktop', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS')
             LicenseUri   = 'https://github.com/pfstr/MailHeaderAnalyzer/blob/main/LICENSE'
-            ProjectUri   = 'https://github.com/pfstr/MailHeaderAnalyzer'
+            ProjectUri   = 'https://rafaelpfister.ch/blog/mailheaderanalyzer-powershell-modul'
+            IconUri      = 'https://rafaelpfister.ch/apple-touch-icon.png'
             ReleaseNotes = 'https://github.com/pfstr/MailHeaderAnalyzer/blob/main/CHANGELOG.md'
         }
     }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 (2026-09-24)
+
+- Project site is now the reference documentation on rafaelpfister.ch; the repository stays linked via license and release notes.
+- Icon for the PowerShell Gallery listing.
+
 ## 0.1.0 (2026-09-24)
 
 First release.
