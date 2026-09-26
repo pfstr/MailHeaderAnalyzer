@@ -70,14 +70,17 @@ function ConvertTo-MailHeaderReport {
                 if ($Analysis.CompAuthReasonMeaning) { $detail += ': ' + $Analysis.CompAuthReasonMeaning }
                 $detail += ')'
             }
+            if ($key -eq 'Arc') { $detail = ' (receiver verdict)' }
             $lines.Add((& $bullet ('{0}: {1}{2}' -f $key.ToLowerInvariant(), $value, $detail)))
         }
         if (-not $any) { $lines.Add((& $bullet 'No Authentication-Results found.')) }
         switch ($Analysis.AuthTrust) {
-            'Matched' { $lines.Add((& $bullet ('Verified by: {0} (appears in the delivery chain)' -f $Analysis.AuthServId))) }
-            'Unmatched' { $lines.Add((& $bullet ('Not verifiable: results carry {0}, which does not appear in the delivery chain' -f $Analysis.AuthServId))) }
+            'Trusted' { $lines.Add((& $bullet ('Results from: {0} (trusted authserv-id)' -f $Analysis.AuthServId))) }
+            'Matched' { $lines.Add((& $bullet ('Results from: {0} (appears in the delivery chain; plausible, not proof)' -f $Analysis.AuthServId))) }
+            'Unmatched' { $lines.Add((& $bullet ('Not verifiable: results carry {0}, which is neither trusted nor in the delivery chain' -f $Analysis.AuthServId))) }
             'Absent' { $lines.Add((& $bullet 'Results without authserv-id (Microsoft 365 style)')) }
         }
+        if ($Analysis.ArcStructure) { $lines.Add((& $bullet ('ARC chain structure: {0} (structure only, signatures not verified)' -f $Analysis.ArcStructure))) }
         if ($Analysis.SpfAlignment) { $lines.Add((& $bullet ('DMARC alignment: SPF {0}, DKIM {1}' -f $Analysis.SpfAlignment, $(if ($Analysis.DkimAlignment) { $Analysis.DkimAlignment } else { '-' })))) }
 
         if ($Analysis.Findings.Count -gt 0) {

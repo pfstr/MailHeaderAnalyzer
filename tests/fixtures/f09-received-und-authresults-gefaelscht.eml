@@ -1,0 +1,5 @@
+Received: from relay.example.test (relay.example.test [203.0.113.9]) by mx.empfang.invalid (Postfix) with ESMTP id REAL3; Tue, 04 Aug 2026 11:00:00 +0200
+Authentication-Results: mx.empfang.invalid; spf=pass smtp.mailfrom=bank.example; dkim=pass header.d=bank.example; dmarc=pass header.from=bank.example
+Received: from evil.invalid (evil.invalid [203.0.113.66]) by mx.empfang.invalid (Postfix) with ESMTP id FAKE1; Tue, 04 Aug 2026 10:59:00 +0200
+From: "Bank Sicherheit" <security@bank.example>
+Subject: F-09 gefaelschte Received- und Ergebniszeile

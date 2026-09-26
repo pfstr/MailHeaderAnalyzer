@@ -1,7 +1,7 @@
 Received: from relay.example.test (relay.example.test [203.0.113.9]) by mx.example.invalid (Postfix) with ESMTP id AAAA4; Mon, 3 Aug 2026 09:00:00 +0000
 DKIM-Signature: v=1; a=rsa-sha256; d=bank.example; s=k1; b=AAAA
-Authentication-Results: mx.example.invalid; dkim=fail header.d=bank.example; arc=pass
+Authentication-Results: mx.example.invalid; dkim=fail header.d=bank.example
 ARC-Seal: i=1; a=rsa-sha256; d=relay1.example.test; cv=none; b=AAAA
 ARC-Authentication-Results: i=1; mx.relay1.example.test; dkim=pass header.d=BANK.example.
 From: "Bank" <security@bank.example>
-Subject: W1A-02 echter Zeuge
+Subject: W1A-02 Zeuge ohne arc=pass

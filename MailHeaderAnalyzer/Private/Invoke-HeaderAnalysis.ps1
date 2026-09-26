@@ -57,7 +57,8 @@ function Invoke-HeaderAnalysis {
     [OutputType('MailHeaderAnalyzer.Analysis')]
     param(
         [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
-        [string]$Source = 'Text'
+        [string]$Source = 'Text',
+        [AllowEmptyCollection()][string[]]$TrustedAuthServId = @()
     )
 
     $split = Split-MailHeader -Text $Text
@@ -107,17 +108,30 @@ function Invoke-HeaderAnalysis {
     $receivedSpf = $null
     if ($null -ne $spfField) { $receivedSpf = ConvertFrom-ReceivedSpf -Field $spfField }
 
-    # Check the origin of verification lines against the delivery chain: a line
-    # whose authserv-id never appears as "by" host can be written by anyone.
+    # Origin of verification lines. Only an authserv-id the caller trusts is evidence,
+    # and only if their gateway strips foreign lines claiming it. Appearing in the
+    # delivery chain is plausibility: Received lines can be forged just as well.
     $byHosts = @($hops | ForEach-Object { ConvertTo-NormalizedDomain -Domain $_.ByHost } | Where-Object { $_ })
     $deliveredBy = $null
     if ($hops.Count -gt 0) { $deliveredBy = ConvertTo-NormalizedDomain -Domain $hops[-1].ByHost }
-    foreach ($set in $authResults) { $set.Trust = Get-AuthTrust -AuthServId $set.AuthServId -ByHosts $byHosts }
+    $trustedIds = @($TrustedAuthServId | ForEach-Object { ConvertTo-NormalizedDomain -Domain $_ } | Where-Object { $_ })
+    foreach ($set in $authResults) { $set.Trust = Get-AuthTrust -AuthServId $set.AuthServId -ByHosts $byHosts -TrustedIds $trustedIds }
 
-    # If there is a verified line, only that one counts (RFC 8601 section 5).
-    $trusted = @($authResults | Where-Object { $_.Trust -eq 'Matched' })
+    # The best origin level present wins; the other lines do not count (RFC 8601 section 5).
     $ranked = $authResults
-    if ($trusted.Count -gt 0) { $ranked = $trusted }
+    foreach ($level in 'Trusted', 'Matched') {
+        $best = @($authResults | Where-Object { $_.Trust -eq $level })
+        if ($best.Count -gt 0) { $ranked = $best; break }
+    }
+
+    # Two trusted lines contradicting each other for the same method: one of them was
+    # not written by the gateway, which means it does not strip spoofed lines.
+    $trustedConflicts = @(
+        $authResults | Where-Object { $_.Trust -eq 'Trusted' } | ForEach-Object { $_.Methods } |
+            Where-Object { $_.Method -in @('spf', 'dmarc', 'arc', 'compauth') } |
+            Group-Object -Property Method | Where-Object { @($_.Group | ForEach-Object { $_.Result } | Sort-Object -Unique).Count -gt 1 } |
+            ForEach-Object { $_.Name }
+    )
     $summary = [ordered]@{ spf = $null; dkim = $null; dmarc = $null; arc = $null; compauth = $null }
     foreach ($set in $ranked) {
         foreach ($m in $set.Methods) {
@@ -134,7 +148,7 @@ function Invoke-HeaderAnalysis {
     if ($null -ne $receivedSpf) {
         $receiver = $null
         if ($receivedSpf.Properties.Contains('receiver')) { $receiver = $receivedSpf.Properties['receiver'] }
-        $receivedSpfTrust = Get-AuthTrust -AuthServId $receiver -ByHosts $byHosts
+        $receivedSpfTrust = Get-AuthTrust -AuthServId $receiver -ByHosts $byHosts -TrustedIds $trustedIds
     }
     $spfFromReceivedSpf = ($null -eq $summary['spf'] -and $null -ne $receivedSpf)
     if ($spfFromReceivedSpf) {
@@ -204,8 +218,12 @@ function Invoke-HeaderAnalysis {
     }
     $dkimSignatures = @($dkimSignatures)
 
-    # ARC chain grouped from the seals.
+    # ARC chain grouped from the seals. The module checks the structure only (RFC 8617
+    # section 5.1.1: instance numbering, one set per instance, cv= sequence); it verifies
+    # no signature. Whether the chain is cryptographically valid is the receiver's arc= verdict.
     $arcMap = @{}
+    $arcIssues = New-Object System.Collections.Generic.List[string]
+    $arcCounts = @{}
     foreach ($seal in @(Get-HeaderField -Fields $fields -Name 'ARC-Seal')) {
         $t = ConvertFrom-TagList -Value $seal.Value
         $i = 0
@@ -214,6 +232,7 @@ function Invoke-HeaderAnalysis {
         if ($t.Contains('d')) { $sealDomain = $t['d'] }
         $cv = $null
         if ($t.Contains('cv')) { $cv = $t['cv'].ToLowerInvariant() }
+        $arcCounts['AS' + $i] = 1 + [int]$arcCounts['AS' + $i]
         $arcMap[$i] = [pscustomobject]@{
             PSTypeName = 'MailHeaderAnalyzer.ArcInstance'
             Instance   = $i
@@ -223,10 +242,17 @@ function Invoke-HeaderAnalysis {
             Methods    = @()
         }
     }
+    foreach ($ams in @(Get-HeaderField -Fields $fields -Name 'ARC-Message-Signature')) {
+        $t = ConvertFrom-TagList -Value $ams.Value
+        $i = 0
+        if ($t.Contains('i') -and $t['i'] -match '^\d+$') { $i = [int]$t['i'] }
+        $arcCounts['AMS' + $i] = 1 + [int]$arcCounts['AMS' + $i]
+    }
     foreach ($aar in @(Get-HeaderField -Fields $fields -Name 'ARC-Authentication-Results')) {
         $im = [regex]::Match($aar.Value, '^\s*i\s*=\s*(\d+)')
         $i = 0
         if ($im.Success) { $i = [int]$im.Groups[1].Value }
+        $arcCounts['AAR' + $i] = 1 + [int]$arcCounts['AAR' + $i]
         if ($arcMap.ContainsKey($i)) {
             $inner = [regex]::Replace($aar.Value, '^\s*i\s*=\s*\d+\s*;\s*', '')
             $arcMap[$i].Results = $inner
@@ -235,13 +261,25 @@ function Invoke-HeaderAnalysis {
         }
     }
     $arc = @($arcMap.Values | Sort-Object Instance)
-    $arcValid = $null
-    if ($arc.Count -gt 0) {
-        $arcValid = $true
-        foreach ($inst in $arc) {
-            if ($inst.Instance -eq 1) { if ($inst.ChainValidation -ne 'none' -and $inst.ChainValidation -ne 'pass') { $arcValid = $false } }
-            elseif ($inst.ChainValidation -ne 'pass') { $arcValid = $false }
+    $arcStructure = $null
+    if ($arcCounts.Count -gt 0) {
+        $top = 0
+        foreach ($k in $arcCounts.Keys) { $n = [int]($k -replace '^\D+', ''); if ($n -gt $top) { $top = $n } }
+        if ($top -gt 50) { $arcIssues.Add(('instance {0} exceeds the limit of 50' -f $top)) }
+        for ($i = 1; $i -le [math]::Min($top, 50); $i++) {
+            foreach ($kind in 'AS', 'AMS', 'AAR') {
+                $c = [int]$arcCounts[$kind + $i]
+                if ($c -ne 1) { $arcIssues.Add(('i={0}: {1} {2} header(s), expected 1' -f $i, $c, $kind)) }
+            }
+            if ($arcMap.ContainsKey($i)) {
+                $expected = 'pass'
+                if ($i -eq 1) { $expected = 'none' }
+                if ($arcMap[$i].ChainValidation -ne $expected) { $arcIssues.Add(('i={0}: cv={1}, expected cv={2}' -f $i, $arcMap[$i].ChainValidation, $expected)) }
+            }
         }
+        if ([int]$arcCounts['AS0'] + [int]$arcCounts['AMS0'] + [int]$arcCounts['AAR0'] -gt 0) { $arcIssues.Add('ARC header without a valid i= tag') }
+        $arcStructure = 'Consistent'
+        if ($arcIssues.Count -gt 0) { $arcStructure = 'Inconsistent' }
     }
 
     $fromField = Get-HeaderField -Fields $fields -Name 'From' -First
@@ -310,6 +348,15 @@ function Invoke-HeaderAnalysis {
     if ($authTrust -eq 'Unmatched') {
         $findings.Add((New-Finding -Severity Warning -Code 'AuthUnverified' -Message ('The verification results carry the identifier {0}, which does not appear anywhere in the delivery chain. A sender can prepend such a line themselves; the results are not evidence.' -f $authoritative.AuthServId)))
     }
+    if ($authTrust -eq 'Matched' -and $trustedIds.Count -eq 0) {
+        $findings.Add((New-Finding -Severity Info -Code 'AuthPlausibleOnly' -Message ('The results carry {0}, which appears in the delivery chain. That is plausible, not proof: a sender can forge the Received line together with the result line. Pass -TrustedAuthServId with the authserv-id of your inbound gateway for a real check.' -f $authoritative.AuthServId)))
+    }
+    if ($trustedIds.Count -gt 0 -and $authTrust -ne 'Trusted') {
+        $findings.Add((New-Finding -Severity Warning -Code 'AuthNotTrusted' -Message ('No verification results carry a trusted authserv-id ({0}). The results shown come from elsewhere and are not evidence.' -f ($trustedIds -join ', '))))
+    }
+    foreach ($method in $trustedConflicts) {
+        $findings.Add((New-Finding -Severity Warning -Code 'AuthTrustedConflict' -Message ('Several lines with a trusted authserv-id report different {0} results. At least one was not written by the gateway: check that it removes incoming Authentication-Results claiming its authserv-id (RFC 8601 section 5).' -f $method)))
+    }
     if ($authMixedOrigins) {
         $findings.Add((New-Finding -Severity Warning -Code 'AuthMixedOrigins' -Message 'Verification results of several origins are present. Only the line of the receiving organization is authoritative.'))
     }
@@ -332,14 +379,16 @@ function Invoke-HeaderAnalysis {
     }
     $dkimResult = & $result 'dkim'
     if ($dkimResult -in @('fail', 'permerror', 'temperror')) {
+        # An ARC-Authentication-Results line is only a claim of the sealer; it counts
+        # only when the receiver validated the chain itself (arc=pass).
         $arcWitness = $false
-        foreach ($inst in $arc) {
+        if ((& $result 'arc') -eq 'pass') { foreach ($inst in $arc) {
             foreach ($m in $inst.Methods) {
                 if ($m.Method -eq 'dkim' -and $m.Result -eq 'pass' -and $m.Properties.Contains('header.d') -and (Test-SameDomain -A $m.Properties['header.d'] -B $dkimDomain)) { $arcWitness = $true }
             }
-        }
+        } }
         if ($arcWitness) {
-            $findings.Add((New-Finding -Severity Info -Code 'DkimBrokenAfterForward' -Message 'DKIM failed at the receiver, but an ARC seal attests that the signature was valid earlier: typical for a forwarding or mailing list that modified the message.'))
+            $findings.Add((New-Finding -Severity Info -Code 'DkimBrokenAfterForward' -Message 'DKIM failed at the receiver, but the receiver validated the ARC chain (arc=pass) and an earlier hop recorded a DKIM pass for the same domain: typical for a forwarding or mailing list that modified the message.'))
         } else {
             $findings.Add((New-Finding -Severity Warning -Code 'DkimNotPass' -Message ('DKIM result: {0}.' -f $dkimResult)))
         }
@@ -357,6 +406,9 @@ function Invoke-HeaderAnalysis {
         if ($sig.SignedHeaders.Count -gt 0 -and $sig.SignedHeaders -notcontains 'from') {
             $findings.Add((New-Finding -Severity Warning -Code 'DkimFromUnsigned' -Message ('DKIM signature of {0} does not cover the From field (RFC 6376 requires it).' -f $sig.Domain)))
         }
+    }
+    if ($arcStructure -eq 'Inconsistent') {
+        $findings.Add((New-Finding -Severity Warning -Code 'ArcStructureInconsistent' -Message ('The ARC headers do not form a well-formed chain (structure check only, signatures are not verified): {0}.' -f ($arcIssues -join '; '))))
     }
     if ($hasSkew) {
         $findings.Add((New-Finding -Severity Info -Code 'ClockSkew' -Message 'At least one hop carries an earlier timestamp than its predecessor: clock skew between the servers, the delays are only approximate.'))
@@ -422,7 +474,8 @@ function Invoke-HeaderAnalysis {
         DeliveredBy           = $deliveredBy
         DkimSignatures        = $dkimSignatures
         ArcChain              = $arc
-        ArcValid              = $arcValid
+        ArcStructure          = $arcStructure
+        ArcStructureIssues    = $arcIssues.ToArray()
         Exchange              = $exchange
         Spam                  = $spam
         List                  = $list

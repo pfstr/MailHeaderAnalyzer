@@ -103,16 +103,50 @@ Describe 'Get-MailHeaderAnalysis: Exchange hybrid and spam headers' {
     It 'reads the ARC chain and list headers' {
         $x.ArcChain.Count | Should -Be 1
         $x.ArcChain[0].SealDomain | Should -Be 'microsoft.com'
-        $x.ArcValid | Should -BeTrue
+        $x.ArcStructure | Should -Be 'Consistent'
+        $x.ArcStructureIssues.Count | Should -Be 0
         $x.List.OneClick | Should -BeTrue
     }
 }
 
 Describe 'Get-MailHeaderAnalysis: trust in verification results' {
-    It 'accepts results whose authserv-id appears in the delivery chain' {
+    It 'rates an authserv-id from the delivery chain as plausible only' {
         $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f04-authresults-echt.eml')
         $r.AuthTrust | Should -Be 'Matched'
         $r.Findings.Code | Should -Not -Contain 'AuthUnverified'
+        $r.Findings.Code | Should -Contain 'AuthPlausibleOnly'
+    }
+
+    It 'does not treat a forged Received line as proof' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f09-received-und-authresults-gefaelscht.eml')
+        $r.AuthTrust | Should -Be 'Matched'
+        $r.AuthTrust | Should -Not -Be 'Trusted'
+        $r.Findings.Code | Should -Contain 'AuthPlausibleOnly'
+    }
+
+    It 'counts only explicitly trusted authserv-ids' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f04-authresults-gefaelscht-plus-echt.eml') -TrustedAuthServId 'MX.Empfang.invalid.'
+        $r.AuthTrust | Should -Be 'Trusted'
+        $r.Dmarc | Should -Be 'fail'
+        $r.Findings.Code | Should -Not -Contain 'AuthPlausibleOnly'
+    }
+
+    It 'matches trusted authserv-ids exactly, not by subdomain' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f04-authresults-echt.eml') -TrustedAuthServId 'empfang.invalid'
+        $r.AuthTrust | Should -Be 'Matched'
+        $r.Findings.Code | Should -Contain 'AuthNotTrusted'
+    }
+
+    It 'warns when trusted lines contradict each other (gateway does not strip)' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f09-trusted-nicht-entfernt.eml') -TrustedAuthServId 'mx.empfang.invalid'
+        $r.AuthTrust | Should -Be 'Trusted'
+        $r.Dmarc | Should -Be 'fail'
+        @($r.Findings | Where-Object Code -eq 'AuthTrustedConflict').Count | Should -Be 2
+    }
+
+    It 'applies the trusted list to Received-SPF as well' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'f04-received-spf-ohne-auth.eml') -TrustedAuthServId 'nobody.invalid'
+        $r.Findings.Code | Should -Contain 'ReceivedSpfForeign'
     }
 
     It 'flags results with a foreign authserv-id as unverified' {
@@ -158,6 +192,21 @@ Describe 'Get-MailHeaderAnalysis: anomalies' {
     It 'recognizes an ARC witness for a broken DKIM signature, but only for the same domain' {
         (Get-MailHeaderAnalysis -Path (Get-Fixture 'w1a02-arc-witness-echt.eml')).Findings.Code | Should -Contain 'DkimBrokenAfterForward'
         (Get-MailHeaderAnalysis -Path (Get-Fixture 'w1a02-arc-witness-substring.eml')).Findings.Code | Should -Contain 'DkimNotPass'
+    }
+
+    It 'ignores an ARC witness unless the receiver validated the chain' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'w1a02-arc-witness-ohne-arc-pass.eml')
+        $r.Findings.Code | Should -Contain 'DkimNotPass'
+        $r.Findings.Code | Should -Not -Contain 'DkimBrokenAfterForward'
+    }
+
+    It 'checks the ARC structure without claiming cryptographic validity' {
+        $r = Get-MailHeaderAnalysis -Path (Get-Fixture 'w1a02-arc-witness-substring.eml')
+        $r.ArcStructure | Should -Be 'Inconsistent'
+        $r.ArcStructureIssues | Should -Contain 'i=1: 0 AMS header(s), expected 1'
+        $r.Findings.Code | Should -Contain 'ArcStructureInconsistent'
+        $r.PSObject.Properties.Name | Should -Not -Contain 'ArcValid'
+        $r | ConvertTo-MailHeaderReport | Should -Match 'signatures not verified'
     }
 
     It 'does not let a hostile DKIM d= value stall the parser' {

@@ -117,17 +117,27 @@ function ConvertFrom-AuthenticationResults {
 function Get-AuthTrust {
     <#
     .SYNOPSIS
-        Does a verification line come from the receiving system? Its authserv-id must match a
-        station of the delivery chain (RFC 8601 section 5); otherwise it is an unverified claim.
+        Classifies the origin of a verification line.
+    .DESCRIPTION
+        Trusted:   the authserv-id is one the caller named as trusted (RFC 8601 section 5).
+                   Only meaningful if the inbound gateway strips foreign lines claiming it.
+        Matched:   the authserv-id appears as "by" host in the delivery chain. Plausibility
+                   only: a sender can forge the Received line and the result line together.
+        Unmatched: neither; an unverified claim.
+        Absent:    no authserv-id (Microsoft 365 style).
     #>
     [CmdletBinding()]
     [OutputType([string])]
     param(
         [AllowNull()][AllowEmptyString()][string]$AuthServId,
-        [AllowEmptyCollection()][string[]]$ByHosts
+        [AllowEmptyCollection()][string[]]$ByHosts,
+        [AllowEmptyCollection()][string[]]$TrustedIds = @()
     )
 
     if (-not (ConvertTo-NormalizedDomain -Domain $AuthServId)) { return 'Absent' }
+    foreach ($t in $TrustedIds) {
+        if (Test-SameDomain -A $AuthServId -B $t) { return 'Trusted' }
+    }
     foreach ($h in $ByHosts) {
         if (Test-HostMatch -A $AuthServId -B $h) { return 'Matched' }
     }

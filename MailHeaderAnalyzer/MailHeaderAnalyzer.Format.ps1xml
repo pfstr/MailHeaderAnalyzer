@@ -36,7 +36,7 @@
               </ListItem>
               <ListItem>
                 <Label>ARC</Label>
-                <ScriptBlock>if ($_.Arc) { $_.Arc } else { '-' }</ScriptBlock>
+                <ScriptBlock>$v = if ($_.Arc) { '{0} (receiver verdict)' -f $_.Arc } else { '-' }; if ($_.ArcStructure) { $v += '; structure {0}, signatures not verified' -f $_.ArcStructure.ToLowerInvariant() }; $v</ScriptBlock>
               </ListItem>
               <ListItem>
                 <Label>CompAuth</Label>
@@ -44,7 +44,7 @@
               </ListItem>
               <ListItem>
                 <Label>AuthTrust</Label>
-                <ScriptBlock>switch ($_.AuthTrust) { 'Matched' { 'Matched (results come from the delivery chain)' } 'Unmatched' { 'Unmatched (results are an unverified claim)' } 'Absent' { 'Absent (no authserv-id, Microsoft 365 style)' } default { 'None' } }</ScriptBlock>
+                <ScriptBlock>switch ($_.AuthTrust) { 'Trusted' { 'Trusted (authserv-id on your trusted list)' } 'Matched' { 'Matched (in the delivery chain; plausible, not proof)' } 'Unmatched' { 'Unmatched (results are an unverified claim)' } 'Absent' { 'Absent (no authserv-id, Microsoft 365 style)' } default { 'None' } }</ScriptBlock>
               </ListItem>
               <ListItem>
                 <Label>Hops</Label>

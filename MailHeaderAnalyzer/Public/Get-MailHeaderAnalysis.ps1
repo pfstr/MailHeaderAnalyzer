@@ -14,9 +14,14 @@ function Get-MailHeaderAnalysis {
           protocol class (RFC 3848), private IPs and provider detection.
         - Authentication-Results (RFC 8601), including the Microsoft variant without authserv-id,
           Received-SPF, DKIM-Signature tags, the ARC chain and compauth reason codes.
-        - Whether the verification results actually come from the receiving server: the
-          authserv-id must match a station of the delivery chain, otherwise the results are an
-          unverified claim (a sender can prepend such a line).
+        - The origin of the verification results (AuthTrust). Without -TrustedAuthServId the
+          module can only check plausibility: an authserv-id that appears as "by" host in the
+          delivery chain is reported as Matched. A sender can forge both lines, so Matched is
+          not proof. With -TrustedAuthServId, only lines carrying one of those ids count
+          (Trusted); everything else is an unverified claim.
+        - The ARC chain structure (instance numbering, one header set per instance, cv=
+          sequence). Signatures are not verified; the cryptographic verdict is the receiver's
+          arc= result.
         - DMARC alignment (strict/relaxed) of SPF and DKIM against the From domain.
         - Exchange Online hybrid headers (MessageDirectionality, AuthAs, AuthMechanism,
           CrossTenant-*), Microsoft Defender/EOP verdicts (SCL, BCL, CAT, SFV, IPV),
@@ -36,10 +41,23 @@ function Get-MailHeaderAnalysis {
         Reads the header from the clipboard (Windows). Copy the header in Outlook
         (File > Properties > Internet headers) or the webmail client, then run the cmdlet.
 
+    .PARAMETER TrustedAuthServId
+        The authserv-id(s) your inbound gateway writes into Authentication-Results, for example
+        'mx.contoso.com'. Compared exactly, no subdomains. Only lines carrying one of these ids
+        count as evidence. This is sound only if the gateway removes incoming
+        Authentication-Results that claim the same id (RFC 8601 section 5); the module cannot
+        check that from a header. Set it once per session with
+        $PSDefaultParameterValues['Get-MailHeaderAnalysis:TrustedAuthServId'] = 'mx.contoso.com'.
+
     .EXAMPLE
         Get-MailHeaderAnalysis -Path .\message.eml
 
         Analyzes the header of a saved message and shows the summary.
+
+    .EXAMPLE
+        Get-MailHeaderAnalysis -Path .\message.eml -TrustedAuthServId 'mx.contoso.com'
+
+        Counts only verification results written by your own gateway.
 
     .EXAMPLE
         Get-MailHeaderAnalysis -FromClipboard | Select-Object -ExpandProperty Hops | Format-Table
@@ -80,7 +98,9 @@ function Get-MailHeaderAnalysis {
         [string[]]$Path,
 
         [Parameter(ParameterSetName = 'Clipboard', Mandatory)]
-        [switch]$FromClipboard
+        [switch]$FromClipboard,
+
+        [string[]]$TrustedAuthServId = @()
     )
 
     begin {
@@ -101,7 +121,7 @@ function Get-MailHeaderAnalysis {
                     }
                     # ReadAllText honours a byte order mark and defaults to UTF-8.
                     $text = [System.IO.File]::ReadAllText($resolved)
-                    Invoke-HeaderAnalysis -Text $text -Source $resolved
+                    Invoke-HeaderAnalysis -Text $text -Source $resolved -TrustedAuthServId $TrustedAuthServId
                 }
             }
             'Clipboard' {
@@ -113,7 +133,7 @@ function Get-MailHeaderAnalysis {
                 if ([string]::IsNullOrWhiteSpace($text)) {
                     throw 'The clipboard is empty. Copy the message header first.'
                 }
-                Invoke-HeaderAnalysis -Text $text -Source 'Clipboard'
+                Invoke-HeaderAnalysis -Text $text -Source 'Clipboard' -TrustedAuthServId $TrustedAuthServId
             }
         }
     }
@@ -124,7 +144,7 @@ function Get-MailHeaderAnalysis {
             if ([string]::IsNullOrWhiteSpace($text)) {
                 throw 'No header text given.'
             }
-            Invoke-HeaderAnalysis -Text $text -Source 'Text'
+            Invoke-HeaderAnalysis -Text $text -Source 'Text' -TrustedAuthServId $TrustedAuthServId
         }
     }
 }

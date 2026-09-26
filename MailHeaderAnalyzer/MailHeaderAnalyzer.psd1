@@ -1,12 +1,12 @@
 @{
     RootModule           = 'MailHeaderAnalyzer.psm1'
-    ModuleVersion        = '0.1.1'
+    ModuleVersion        = '0.2.0'
     CompatiblePSEditions = @('Desktop', 'Core')
     GUID                 = 'f6d83373-3d5d-43c8-b287-3dbd25e93cfc'
     Author               = 'Rafael Pfister'
     CompanyName          = 'adeptio gmbh'
     Copyright            = '(c) 2026 Rafael Pfister. MIT License.'
-    Description          = 'Analyzes email headers offline: delivery chain with delays and TLS, SPF/DKIM/DMARC/ARC results and whether they really come from the receiving server, DMARC alignment, Exchange Online hybrid classification (AuthAs, AuthMechanism, CrossTenant), Microsoft Defender/EOP verdicts (SCL, BCL, CAT), SpamAssassin, Rspamd and anomalies such as duplicate From lines or Unicode direction controls. No DNS lookups, no network requests.'
+    Description          = 'Analyzes email headers offline: delivery chain with delays and TLS, SPF/DKIM/DMARC/ARC results with an origin check against trusted authserv-ids, DMARC alignment, Exchange Online hybrid classification (AuthAs, AuthMechanism, CrossTenant), Microsoft Defender/EOP verdicts (SCL, BCL, CAT), SpamAssassin, Rspamd and anomalies such as duplicate From lines or Unicode direction controls. No DNS lookups, no network requests.'
     PowerShellVersion    = '5.1'
     FunctionsToExport    = @('Get-MailHeaderAnalysis', 'ConvertTo-MailHeaderReport')
     CmdletsToExport      = @()
